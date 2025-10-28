@@ -5,27 +5,32 @@ import { useExpressionStore } from "@/lib/store/expressionStore"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
 
-interface PCNFResponse {
+interface Step {
+  statement: string
+  rule: string
+}
+
+interface SimplifyResponse {
   expression: string
   valid: boolean
   result: string | null
-  steps: string[]
+  steps: Step[]
 }
 
-interface PCNFState {
+interface SimplifyState {
   expression: string
   valid: boolean
   result: string
-  steps: string[]
+  steps: Step[]
 }
 
-const PCNF: React.FC = () => {
+const Simplify: React.FC = () => {
   const router = useRouter()
   const { expression } = useExpressionStore()
 
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [pcnfData, setPcnfData] = useState<PCNFState>({
+  const [simplifyData, setSimplifyData] = useState<SimplifyState>({
     expression: "",
     valid: true,
     result: "",
@@ -38,32 +43,32 @@ const PCNF: React.FC = () => {
       return
     }
 
-    const generatePCNF = async () => {
+    const simplifyExpression = async () => {
       setLoading(true)
-      setPcnfData({ expression: "", valid: true, result: "", steps: [] })
+      setSimplifyData({ expression: "", valid: true, result: "", steps: [] })
 
       try {
-        const res = await fetch("/api/pcnf", {
+        const res = await fetch("/api/simplify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ expression }),
         })
 
-        const data: PCNFResponse = await res.json()
+        const data: SimplifyResponse = await res.json()
 
-        if (!res.ok) throw new Error("Failed to generate PCNF")
+        if (!res.ok) throw new Error("Failed to simplify expression")
 
-        setPcnfData({
+        setSimplifyData({
           expression: data.expression,
           valid: data.valid,
-          result: data.result || "No output generated.",
+          result: data.result || "No simplification generated.",
           steps: data.steps || [],
         })
       } catch {
-        setPcnfData({
-          expression: expression,
+        setSimplifyData({
+          expression,
           valid: false,
-          result: "Error generating PCNF. Please try again.",
+          result: "Error simplifying expression. Please try again.",
           steps: [],
         })
       } finally {
@@ -71,11 +76,11 @@ const PCNF: React.FC = () => {
       }
     }
 
-    generatePCNF()
+    simplifyExpression()
   }, [expression, router])
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(pcnfData.result)
+    navigator.clipboard.writeText(simplifyData.result)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -93,6 +98,7 @@ const PCNF: React.FC = () => {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="w-full max-w-3xl space-y-4 p-6 rounded-lg"
       >
+        {/* Header */}
         <div className="space-y-1.5">
           <motion.h2
             initial={{ opacity: 0, y: -10 }}
@@ -100,7 +106,7 @@ const PCNF: React.FC = () => {
             transition={{ delay: 0.2 }}
             className="text-5xl font-semibold text-white italic"
           >
-            PCNF
+            Simplify
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }}
@@ -108,7 +114,7 @@ const PCNF: React.FC = () => {
             transition={{ delay: 0.3 }}
             className="text-md text-white/80"
           >
-            Principal Conjunctive Normal Form for the current expression.
+            Simplified version of your Boolean expression using algebraic rules.
           </motion.p>
         </div>
 
@@ -121,50 +127,77 @@ const PCNF: React.FC = () => {
         >
           <div className="mb-2 text-sm text-slate-700">Input expression</div>
           <div className="whitespace-pre-wrap wrap-break-word text-lg text-slate-900">
-            {loading ? expression : pcnfData.expression}
+            {loading ? expression : simplifyData.expression}
           </div>
         </motion.div>
 
-        {/* PCNF Result */}
+        {/* Simplified Result */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5 }}
-          className={`rounded-md p-4 ${pcnfData.valid ? "bg-white/90" : "bg-red-100"
-            }`}
+          className={`rounded-md p-4 ${simplifyData.valid ? "bg-white/90" : "bg-red-100"}`}
         >
-          <div className="mb-2 text-sm text-slate-700">PCNF</div>
+          <div className="mb-2 text-sm text-slate-700">Simplified Expression</div>
           <div className="whitespace-pre-wrap wrap-break-word text-lg text-slate-900">
-            {loading
-              ? "Generating..."
-              : pcnfData.result || "No output generated."}
+            {loading ? "Simplifying..." : simplifyData.result || "No simplification generated."}
           </div>
         </motion.div>
 
         {/* Steps */}
         <AnimatePresence>
-          {pcnfData.steps.length > 0 && pcnfData.valid && (
+          {simplifyData.steps.length > 0 && simplifyData.valid && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               transition={{ duration: 0.3 }}
-              className="rounded-md bg-white/80 p-4"
+              className="rounded-xl bg-white/80 p-4 shadow-sm backdrop-blur-sm"
             >
-              <div className="mb-2 text-sm text-slate-700">Steps</div>
-              <ul className="list-disc pl-5 space-y-1 text-slate-800">
-                {pcnfData.steps.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
+              <div className="mb-3 text-sm text-slate-700 font-medium tracking-wide">
+                Simplification Steps
+              </div>
+
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="min-w-full text-sm border-separate border-spacing-0">
+                  <thead>
+                    <tr className="text-slate-500 uppercase text-xs tracking-wide border-b border-slate-200">
+                      <th className="py-2 pr-3 text-left w-10 font-medium">#</th>
+                      <th className="py-2 px-3 text-left font-medium whitespace-nowrap">
+                        Statement
+                      </th>
+                      <th className="py-2 px-3 text-left font-medium whitespace-nowrap">
+                        Rule
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {simplifyData.steps.map((s, i) => (
+                      <tr
+                        key={i}
+                      >
+                        <td className="py-2 pr-3 text-slate-700 font-medium whitespace-nowrap align-top">
+                          {i + 1}
+                        </td>
+                        <td className="py-2 px-3 text-slate-900 whitespace-nowrap overflow-x-auto max-w-[500px] custom-scrollbar">
+                          {s.statement}
+                        </td>
+                        <td className="py-2 px-3 text-slate-600 italic whitespace-nowrap">
+                          {s.rule}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </motion.div>
           )}
+
         </AnimatePresence>
 
-        {/* Copy Button */}
-        {/* Action Buttons */}
+        {/* Buttons */}
         <AnimatePresence>
-          {pcnfData.valid && pcnfData.result && !loading && (
+          {simplifyData.valid && simplifyData.result && !loading && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -172,7 +205,7 @@ const PCNF: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="flex items-center gap-3"
             >
-              {/* Copy button */}
+              {/* Copy */}
               <Button
                 size="lg"
                 variant="secondary"
@@ -198,28 +231,27 @@ const PCNF: React.FC = () => {
                       exit={{ opacity: 0, scale: 0.8 }}
                       transition={{ duration: 0.1 }}
                     >
-                      Copy PCNF
+                      Copy Simplified
                     </motion.span>
                   )}
                 </AnimatePresence>
               </Button>
 
-              {/* Navigate to PDNF */}
+              {/* Back */}
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => router.push("/pdnf")}
+                onClick={() => router.push("/")}
                 className="cursor-pointer"
               >
-                Go to PDNF
+                Back Home
               </Button>
             </motion.div>
           )}
         </AnimatePresence>
-
       </motion.div>
     </motion.div>
   )
 }
 
-export default PCNF
+export default Simplify

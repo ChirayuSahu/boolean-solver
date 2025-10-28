@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
-import prompts from "@/lib/prompts"
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY, // ✅ keep this server-only
+  apiKey: process.env.GROQ_API_KEY,
 })
 
 export async function POST(req: Request) {
@@ -15,40 +14,47 @@ export async function POST(req: Request) {
         {
           expression: expression || "",
           valid: false,
-          result: null,
-          steps: ["No expression provided."],
+          variables: [],
+          rows: [],
         },
         { status: 400 }
       )
     }
 
-    const finalPrompt = `
-${prompts.pcnf}
+    // 🧠 The prompt for truth table generation
+    const prompt = `
+You are a Boolean logic assistant.
+Given a Boolean expression using logical symbols (¬, ∧, ∨, →, ↔),
+generate its **truth table**.
 
-Expression: ${expression}
-Return your response strictly as a JSON object with:
+Return a valid JSON object:
 {
   "expression": string,
   "valid": boolean,
-  "result": string | null,
-  "steps": string[]
+  "variables": string[],
+  "rows": [
+    { "A": 0, "B": 0, ..., "result": 1 },
+    ...
+  ]
 }
-  change the expression with valid symbols and not english words.
-  Do not include any step about replacing English operators (like "and", "or", "not") with symbols. 
-Assume the input expression already uses logical symbols (∧, ∨, ¬) or equivalent parentheses.
-Never mention converting text operators.
 
-    `
+Rules:
+1. Do NOT explain. Only return JSON.
+2. Use 0 and 1 for false and true.
+3. Ensure the number of rows = 2^(number of variables).
+4. Use "result" as the column name for output.
+5. Use symbols, not words like AND, OR, NOT.
+Expression: ${expression}
+`
 
     const completion = await groq.chat.completions.create({
       model: "openai/gpt-oss-120b",
-      messages: [{ role: "user", content: finalPrompt }],
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
     })
 
     const raw = completion.choices?.[0]?.message?.content?.trim() || ""
 
-    // ✅ Attempt to parse model output as JSON
     let parsed
     try {
       parsed = JSON.parse(raw)
@@ -57,35 +63,34 @@ Never mention converting text operators.
       parsed = {
         expression,
         valid: false,
-        result: null,
-        steps: ["Model returned invalid JSON format."],
+        variables: [],
+        rows: [],
       }
     }
 
-    // ✅ Validate essential keys
     if (
       typeof parsed.expression !== "string" ||
       typeof parsed.valid !== "boolean" ||
-      (typeof parsed.result !== "string" && parsed.result !== null) ||
-      !Array.isArray(parsed.steps)
+      !Array.isArray(parsed.variables) ||
+      !Array.isArray(parsed.rows)
     ) {
       parsed = {
         expression,
         valid: false,
-        result: null,
-        steps: ["Malformed response received from model."],
+        variables: [],
+        rows: [],
       }
     }
 
     return NextResponse.json(parsed)
   } catch (err) {
-    console.error("PDNF API error:", err)
+    console.error("Truth Table API error:", err)
     return NextResponse.json(
       {
         expression: "",
         valid: false,
-        result: null,
-        steps: ["Server error while generating PDNF."],
+        variables: [],
+        rows: [],
       },
       { status: 500 }
     )

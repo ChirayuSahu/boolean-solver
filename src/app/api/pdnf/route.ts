@@ -76,8 +76,7 @@ Never mention converting text operators.
         steps: ["Malformed response received from model."],
       }
     }
-
-    console.log("PDNF API response:", parsed)
+    
     return NextResponse.json(parsed)
   } catch (err) {
     console.error("PDNF API error:", err)

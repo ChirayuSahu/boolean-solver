@@ -61,6 +61,7 @@ export default function MainPage() {
                                     <Button
                                         size="lg"
                                         className="w-full sm:w-auto text-base px-6"
+                                        onClick={() => router.push("/table")}
                                     >
                                         Truth Table
                                     </Button>
@@ -85,6 +86,17 @@ export default function MainPage() {
                                         Convert to PDNF
                                     </Button>
                                 </motion.div>
+
+                                <motion.div variants={buttonItem} className="w-full sm:w-auto">
+                                    <Button
+                                        onClick={() => router.push("/simplify")}
+                                        size="lg"
+                                        className="w-full sm:w-auto text-base px-6"
+                                    >
+                                        Simplify Expression
+                                    </Button>
+                                </motion.div>
+
                             </motion.div>
                         )}
                     </AnimatePresence>

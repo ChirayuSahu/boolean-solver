@@ -3,7 +3,7 @@ import Groq from "groq-sdk"
 import prompts from "@/lib/prompts"
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY, // ✅ keep this server-only
+  apiKey: process.env.GROQ_API_KEY, // ✅ server-only key
 })
 
 export async function POST(req: Request) {
@@ -23,21 +23,14 @@ export async function POST(req: Request) {
     }
 
     const finalPrompt = `
-${prompts.pcnf}
+${prompts.simplify}
 
 Expression: ${expression}
-Return your response strictly as a JSON object with:
-{
-  "expression": string,
-  "valid": boolean,
-  "result": string | null,
-  "steps": string[]
-}
-  change the expression with valid symbols and not english words.
-  Do not include any step about replacing English operators (like "and", "or", "not") with symbols. 
-Assume the input expression already uses logical symbols (∧, ∨, ¬) or equivalent parentheses.
-Never mention converting text operators.
 
+Do not include any step about replacing English operators like "and", "or", "not" with symbols.
+Assume the input expression already uses logical symbols (∧, ∨, ¬) or equivalent parentheses.
+Never mention operator conversion or truth tables.
+Focus purely on algebraic simplification steps (distribution, absorption, etc.).
     `
 
     const completion = await groq.chat.completions.create({
@@ -48,7 +41,7 @@ Never mention converting text operators.
 
     const raw = completion.choices?.[0]?.message?.content?.trim() || ""
 
-    // ✅ Attempt to parse model output as JSON
+    // ✅ Try parsing JSON
     let parsed
     try {
       parsed = JSON.parse(raw)
@@ -62,7 +55,7 @@ Never mention converting text operators.
       }
     }
 
-    // ✅ Validate essential keys
+    // ✅ Validate structure
     if (
       typeof parsed.expression !== "string" ||
       typeof parsed.valid !== "boolean" ||
@@ -79,13 +72,13 @@ Never mention converting text operators.
 
     return NextResponse.json(parsed)
   } catch (err) {
-    console.error("PDNF API error:", err)
+    console.error("Simplify API error:", err)
     return NextResponse.json(
       {
         expression: "",
         valid: false,
         result: null,
-        steps: ["Server error while generating PDNF."],
+        steps: ["Server error while simplifying expression."],
       },
       { status: 500 }
     )

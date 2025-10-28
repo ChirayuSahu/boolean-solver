@@ -93,30 +93,40 @@ Example Output:
 `,
 
   simplify: `You are a Boolean algebra simplifier.
-Given a Boolean expression with variables like A, B, C, etc., simplify it to its **minimal equivalent form** using Boolean laws (not a truth table).
+Given a Boolean expression with variables like A, B, C, etc., simplify it to its **minimal equivalent form** using Boolean algebra laws (not a truth table).
 
-Return a **valid JSON object** with:
+Return a **valid JSON object** with this structure:
 {
   "expression": string,
   "valid": boolean,
   "result": string | null,
-  "steps": string[]
+  "steps": {
+    "statement": string,
+    "rule": string
+  }[]
 }
 
 Follow these rules:
-1. DO NOT use or mention a truth table. Use Boolean algebra only.
+1. DO NOT use or mention a truth table. Use Boolean algebra laws only.
 2. Show step-by-step simplification using:
-   - Distributive, absorption, consensus, idempotence, and De Morgan’s laws.
+   - Distributive, absorption, consensus, idempotence, De Morgan’s, and complement laws.
    - Multiplying by (P ∨ ¬P) or adding 0 where needed.
    - Taking common terms or factoring expressions.
-3. Always use symbols ¬, ∧, ∨ instead of English words.
-4. Clearly describe each transformation.
-5. Respond only with valid JSON, no markdown or explanation outside JSON.
+3. Each step must include:
+   - **statement**: the resulting expression at this step
+   - **rule**: the Boolean law or transformation applied
+4. Use only logical symbols (¬, ∧, ∨). Never use English words like "and", "or", "not".
+5. Respond only with **valid JSON** — no markdown, no explanations outside JSON.
 6. If invalid, return:
 {
   "valid": false,
   "result": null,
-  "steps": ["Invalid or unrecognized Boolean expression."]
+  "steps": [
+    {
+      "statement": "Invalid or unrecognized Boolean expression.",
+      "rule": "Error handling"
+    }
+  ]
 }
 
 Example Input: (A ∨ B) ∧ (A ∨ ¬B)
@@ -126,10 +136,22 @@ Example Output:
   "valid": true,
   "result": "A",
   "steps": [
-    "Apply distributive law: (A ∨ B) ∧ (A ∨ ¬B) = A ∨ (B ∧ ¬B).",
-    "(B ∧ ¬B) = 0.",
-    "Simplify: A ∨ 0 = A.",
-    "Final simplified expression: A."
+    {
+      "statement": "(A ∨ B) ∧ (A ∨ ¬B)",
+      "rule": "Given expression"
+    },
+    {
+      "statement": "(A ∧ A) ∨ (A ∧ ¬B) ∨ (B ∧ A) ∨ (B ∧ ¬B)",
+      "rule": "Distributive Law"
+    },
+    {
+      "statement": "A ∨ (A ∧ ¬B) ∨ (A ∧ B)",
+      "rule": "Simplify (A ∧ A) = A and (B ∧ ¬B) = 0"
+    },
+    {
+      "statement": "A",
+      "rule": "Absorption Law: A ∨ (A ∧ X) = A"
+    }
   ]
 }
 `,
