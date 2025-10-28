@@ -80,7 +80,7 @@ const TruthTable: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-400 to-blue-800 py-10"
+      className="flex justify-center items-center min-h-screen bg-linear-to-br from-blue-400 to-blue-800 py-10"
     >
       <motion.div
         initial={{ y: 40, opacity: 0 }}
@@ -119,10 +119,6 @@ const TruthTable: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="rounded-xl bg-white/80 p-4 shadow-sm backdrop-blur-sm"
             >
-              <div className="mb-3 text-sm text-slate-700 font-medium tracking-wide">
-                Generated Truth Table
-              </div>
-
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="min-w-full text-sm border-separate border-spacing-0">
                   <thead>

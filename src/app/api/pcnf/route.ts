@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
-import prompts from "@/lib/prompts"
+import prompts, { model } from "@/lib/prompts"
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY, // ✅ keep this server-only
@@ -41,7 +41,7 @@ Never mention converting text operators.
     `
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model,
       messages: [{ role: "user", content: finalPrompt }],
       temperature: 0.3,
     })

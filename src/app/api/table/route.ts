@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
+import { model } from '@/lib/prompts'
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -48,7 +49,7 @@ Expression: ${expression}
 `
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
     })
