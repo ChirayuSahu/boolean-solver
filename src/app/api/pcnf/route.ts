@@ -41,7 +41,7 @@ Never mention converting text operators.
     `
 
     const completion = await groq.chat.completions.create({
-      model: "openai/gpt-oss-120b",
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: finalPrompt }],
       temperature: 0.3,
     })

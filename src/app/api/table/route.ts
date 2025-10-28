@@ -48,12 +48,16 @@ Expression: ${expression}
 `
 
     const completion = await groq.chat.completions.create({
-      model: "openai/gpt-oss-120b",
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
     })
 
-    const raw = completion.choices?.[0]?.message?.content?.trim() || ""
+    // right before JSON.parse()
+    let raw = completion.choices?.[0]?.message?.content?.trim() || ""
+
+    // 🧹 remove ```json or ``` fences if present
+    raw = raw.replace(/^```(?:json)?\n?/i, "").replace(/```$/, "").trim()
 
     let parsed
     try {
