@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     title: "LogiTrace — Simplify Boolean Logic & Generate Truth Tables",
     description:
       "A fast and intuitive Boolean Logic Assistant that generates truth tables, PDNF, and PCNF expressions, and simplifies logical formulas.",
-    url: "https://logitrace.com",
+    url: "https://logitrace.chirayusahu.com",
     siteName: "LogiTrace",
     images: [
       {
