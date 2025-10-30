@@ -77,6 +77,7 @@ Never mention converting text operators.
       }
     }
     
+    console.log(parsed);
     return NextResponse.json(parsed)
   } catch (err) {
     console.error("PDNF API error:", err)

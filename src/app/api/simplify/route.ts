@@ -3,7 +3,7 @@ import Groq from "groq-sdk"
 import prompts, { model } from "@/lib/prompts"
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY, // ✅ server-only key
+  apiKey: process.env.GROQ_API_KEY,
 })
 
 export async function POST(req: Request) {
@@ -16,22 +16,42 @@ export async function POST(req: Request) {
           expression: expression || "",
           valid: false,
           result: null,
-          steps: ["No expression provided."],
+          steps: [{ statement: "No expression provided.", rule: "Error" }],
         },
         { status: 400 }
       )
     }
 
     const finalPrompt = `
-${prompts.simplify}
+You are a logic reasoning and Boolean simplification engine.
 
-Expression: ${expression}
+You can handle:
+1. Boolean algebra expressions with logical symbols (¬, ∧, ∨, →, ↔, etc.).
+2. Natural language logical statements like "If it rains, the ground gets wet."
 
-Do not include any step about replacing English operators like "and", "or", "not" with symbols.
-Assume the input expression already uses logical symbols (∧, ∨, ¬) or equivalent parentheses.
-Never mention operator conversion or truth tables.
-Focus purely on algebraic simplification steps (distribution, absorption, etc.).
-    `
+Your job:
+- Interpret what kind of statement it is.
+- If it's symbolic: simplify it step-by-step using Boolean algebra laws only.
+- If it's natural language: translate into logic form, reason about it, and derive the logical conclusion.
+
+Return valid JSON only in this exact structure:
+{
+  "expression": string,
+  "valid": boolean,
+  "result": string | null,
+  "steps": [{"statement": string, "rule": string}]
+}
+
+Rules:
+- Never use or mention truth tables.
+- Each step must explain what rule or reasoning was applied.
+- Use Boolean symbols (¬, ∧, ∨) when simplifying.
+- For natural language logic, use clear reasoning laws (Modus Ponens, Contrapositive, etc.) in "rule".
+- Never output anything outside JSON.
+- If the input makes no logical sense, set valid=false.
+
+Input: ${expression}
+`
 
     const completion = await groq.chat.completions.create({
       model,
@@ -41,7 +61,6 @@ Focus purely on algebraic simplification steps (distribution, absorption, etc.).
 
     const raw = completion.choices?.[0]?.message?.content?.trim() || ""
 
-    // ✅ Try parsing JSON
     let parsed
     try {
       parsed = JSON.parse(raw)
@@ -51,7 +70,7 @@ Focus purely on algebraic simplification steps (distribution, absorption, etc.).
         expression,
         valid: false,
         result: null,
-        steps: ["Model returned invalid JSON format."],
+        steps: [{ statement: "Model returned invalid JSON.", rule: "Error" }],
       }
     }
 
@@ -66,7 +85,7 @@ Focus purely on algebraic simplification steps (distribution, absorption, etc.).
         expression,
         valid: false,
         result: null,
-        steps: ["Malformed response received from model."],
+        steps: [{ statement: "Malformed response from model.", rule: "Error" }],
       }
     }
 
@@ -78,7 +97,7 @@ Focus purely on algebraic simplification steps (distribution, absorption, etc.).
         expression: "",
         valid: false,
         result: null,
-        steps: ["Server error while simplifying expression."],
+        steps: [{ statement: "Server error while simplifying expression.", rule: "Error" }],
       },
       { status: 500 }
     )

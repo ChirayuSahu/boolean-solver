@@ -17,20 +17,13 @@ interface SimplifyResponse {
   steps: Step[]
 }
 
-interface SimplifyState {
-  expression: string
-  valid: boolean
-  result: string
-  steps: Step[]
-}
-
 const Simplify: React.FC = () => {
   const router = useRouter()
   const { expression } = useExpressionStore()
 
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [simplifyData, setSimplifyData] = useState<SimplifyState>({
+  const [data, setData] = useState<SimplifyResponse>({
     expression: "",
     valid: true,
     result: "",
@@ -45,8 +38,6 @@ const Simplify: React.FC = () => {
 
     const simplifyExpression = async () => {
       setLoading(true)
-      setSimplifyData({ expression: "", valid: true, result: "", steps: [] })
-
       try {
         const res = await fetch("/api/simplify", {
           method: "POST",
@@ -54,18 +45,18 @@ const Simplify: React.FC = () => {
           body: JSON.stringify({ expression }),
         })
 
-        const data: SimplifyResponse = await res.json()
+        const json: SimplifyResponse = await res.json()
 
         if (!res.ok) throw new Error("Failed to simplify expression")
 
-        setSimplifyData({
-          expression: data.expression,
-          valid: data.valid,
-          result: data.result || "No simplification generated.",
-          steps: data.steps || [],
+        setData({
+          expression: json.expression,
+          valid: json.valid,
+          result: json.result || "No simplification generated.",
+          steps: json.steps || [],
         })
       } catch {
-        setSimplifyData({
+        setData({
           expression,
           valid: false,
           result: "Error simplifying expression. Please try again.",
@@ -80,7 +71,8 @@ const Simplify: React.FC = () => {
   }, [expression, router])
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(simplifyData.result)
+    if (!data.result) return
+    navigator.clipboard.writeText(data.result)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -118,35 +110,37 @@ const Simplify: React.FC = () => {
           </motion.p>
         </div>
 
-        {/* Expression */}
+        {/* Input Expression */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4 }}
           className="rounded-md bg-white/90 p-4"
         >
-          <div className="mb-2 text-sm text-slate-700">Input expression</div>
-          <div className="whitespace-pre-wrap wrap-break-word text-lg text-slate-900">
-            {loading ? expression : simplifyData.expression}
+          <div className="mb-2 text-sm text-slate-700">Input Expression</div>
+          <div className="wrap-break-words text-lg text-slate-900">
+            {loading ? expression : data.expression}
           </div>
         </motion.div>
 
-        {/* Simplified Result */}
+        {/* Result */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5 }}
-          className={`rounded-md p-4 ${simplifyData.valid ? "bg-white/90" : "bg-red-100"}`}
+          className={`rounded-md p-4 ${
+            data.valid ? "bg-white/90" : "bg-red-100"
+          }`}
         >
           <div className="mb-2 text-sm text-slate-700">Simplified Expression</div>
-          <div className="whitespace-pre-wrap wrap-break-word text-lg text-slate-900">
-            {loading ? "Simplifying..." : simplifyData.result || "No simplification generated."}
+          <div className="wrap-break-words text-lg text-slate-900">
+            {loading ? "Simplifying..." : data.result || "No simplification generated."}
           </div>
         </motion.div>
 
         {/* Steps */}
         <AnimatePresence>
-          {simplifyData.steps.length > 0 && simplifyData.valid && (
+          {data.steps.length > 0 && data.valid && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -172,17 +166,15 @@ const Simplify: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {simplifyData.steps.map((s, i) => (
-                      <tr
-                        key={i}
-                      >
-                        <td className="py-2 pr-3 text-slate-700 font-medium whitespace-nowrap align-top">
+                    {data.steps.map((s, i) => (
+                      <tr key={i}>
+                        <td className="py-2 pr-3 text-slate-700 font-medium align-top">
                           {i + 1}
                         </td>
-                        <td className="py-2 px-3 text-slate-900 whitespace-nowrap overflow-x-auto max-w-[500px] custom-scrollbar">
+                        <td className="py-2 px-3 text-slate-900 wrap-break-words">
                           {s.statement}
                         </td>
-                        <td className="py-2 px-3 text-slate-600 italic whitespace-nowrap">
+                        <td className="py-2 px-3 text-slate-600 italic">
                           {s.rule}
                         </td>
                       </tr>
@@ -192,12 +184,11 @@ const Simplify: React.FC = () => {
               </div>
             </motion.div>
           )}
-
         </AnimatePresence>
 
         {/* Buttons */}
         <AnimatePresence>
-          {simplifyData.valid && simplifyData.result && !loading && (
+          {!loading && data.valid && data.result && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -205,12 +196,11 @@ const Simplify: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="flex items-center gap-3"
             >
-              {/* Copy */}
               <Button
                 size="lg"
                 variant="secondary"
                 onClick={handleCopy}
-                className="cursor-pointer relative overflow-hidden"
+                className="cursor-pointer"
               >
                 <AnimatePresence mode="wait">
                   {copied ? (
@@ -237,7 +227,6 @@ const Simplify: React.FC = () => {
                 </AnimatePresence>
               </Button>
 
-              {/* Back */}
               <Button
                 size="lg"
                 variant="outline"
